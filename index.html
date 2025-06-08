@@ -5,71 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WeatherShield SG</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-      text-align: center;
-    }
-    .card {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-bottom: 20px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    select, input, textarea {
-      padding: 10px;
-      width: 90%;
-      margin-top: 10px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    button {
-      padding: 10px 20px;
-      margin-top: 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #umbrellaForm, #weather, #umbrellaPosts { margin-bottom: 20px; }
+    .post { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
+    button { margin-left: 10px; }
+    #postStatus { color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>☁️ WeatherShield SG</h1>
-    <p>Select a region:</p>
+  <h1>WeatherShield SG</h1>
+  
+  <!-- Weather Section -->
+  <div>
+    <label for="locationSelect">Select Region:</label>
     <select id="locationSelect">
-      <option value="East">East (Bedok)</option>
-      <option value="West">West (Jurong West)</option>
-      <option value="Central">Central (City)</option>
-      <option value="North">North (Ang Mo Kio)</option>
+      <option value="Central">Central</option>
+      <option value="East">East</option>
+      <option value="North">North</option>
+      <option value="West">West</option>
     </select>
-    <p id="weather">Loading real-time weather forecast...</p>
+    <div id="weather">Loading weather...</div>
   </div>
 
-  <div class="card">
-    <h2>☂️ Share Your Umbrella</h2>
-    <form id="umbrellaForm">
-      <input type="text" id="name" placeholder="Your Name" required><br>
-      <input type="text" id="location" placeholder="Location (e.g., Bugis MRT)" required><br>
-      <textarea id="message" placeholder="Any message?" rows="3"></textarea><br>
-      <button type="submit">Post Offer</button>
-    </form>
-    <p id="postStatus"></p>
-    <h3>Available Umbrellas</h3>
-    <div id="umbrellaPosts">Loading posts...</div>
-  </div>
+  <!-- Post Form -->
+  <form id="umbrellaForm">
+    <h2>Share an Umbrella</h2>
+    <div>
+      <label for="name">Name:</label>
+      <input type="text" id="name" required>
+    </div>
+    <div>
+      <label for="location">Location:</label>
+      <input type="text" id="location" required>
+    </div>
+    <div>
+      <label for="message">Message:</label>
+      <textarea id="message"></textarea>
+    </div>
+    <button type="submit">Post Offer</button>
+    <div id="postStatus"></div>
+  </form>
+
+  <!-- Posts Display -->
+  <div id="umbrellaPosts">Loading posts...</div>
 
   <script>
-    // Map regions to NEA API areas
+    // *** PLACEHOLDER: Replace with your API Gateway Invoke URL ***
+    // e.g., 'https://0hmf282ge0.execute-api.us-east-2.amazonaws.com/prod'
+    const apiUrl = 'YOUR_API_GATEWAY_URL_HERE';
+
+    // NEA API region to area mapping
     const regionToArea = {
       'East': 'Bedok',
       'West': 'Jurong West',
@@ -77,10 +63,10 @@
       'North': 'Ang Mo Kio'
     };
 
-    // Fetch weather directly from NEA API
+    // Fetch NEA weather data
     async function fetchWeather(region) {
       try {
-        const area = regionToArea[region]; // Map region to area
+        const area = regionToArea[region];
         const res = await fetch('https://api.data.gov.sg/v1/environment/2-hour-weather-forecast');
         if (!res.ok) throw new Error('Network response was not ok');
         const data = await res.json();
@@ -90,28 +76,101 @@
           ? `Forecast for ${region}: ${forecast.forecast}` 
           : `No data for ${region}`;
       } catch (err) {
-        document.getElementById('weather').innerText = 'Failed to load weather data: ' + err.message;
+        document.getElementById('weather').innerText = `Failed to load weather: ${err.message}`;
+        document.getElementById('weather').classList.add('error');
       }
     }
 
-    // Fetch umbrella posts (placeholder until backend is set up)
+    // Fetch and display posts
     async function fetchUmbrellaPosts() {
-      document.getElementById('umbrellaPosts').innerText = 'Umbrella posts require backend setup.';
+      try {
+        const res = await fetch(`${apiUrl}/umbrella`);
+        if (!res.ok) throw new Error('Failed to fetch posts');
+        const posts = await res.json();
+        const postsDiv = document.getElementById('umbrellaPosts');
+        postsDiv.innerHTML = posts.length 
+          ? posts.map(post => `
+              <div class="post">
+                <strong>${post.name}</strong> at ${post.location}: ${post.message || 'No message'} (${post.timestamp})
+                <button onclick="updatePost('${post.postId}')">Edit</button>
+                <button onclick="deletePost('${post.postId}')">Delete</button>
+              </div>`).join('')
+          : '<p>No umbrella posts yet.</p>';
+      } catch (err) {
+        document.getElementById('umbrellaPosts').innerText = `Failed to load posts: ${err.message}`;
+        document.getElementById('umbrellaPosts').classList.add('error');
+      }
     }
 
-    // Initial fetch
-    fetchWeather('Central'); // Default to Central
+    // Update a post
+    async function updatePost(postId) {
+      const name = prompt('Enter name:', '');
+      const location = prompt('Enter location:', '');
+      const message = prompt('Enter message:', '');
+      if (!name || !location) {
+        alert('Name and location are required.');
+        return;
+      }
+      try {
+        const res = await fetch(`${apiUrl}/umbrella/${postId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, location, message })
+        });
+        if (!res.ok) throw new Error('Failed to update post');
+        fetchUmbrellaPosts(); // Refresh posts
+      } catch (err) {
+        alert(`Failed to update post: ${err.message}`);
+      }
+    }
+
+    // Delete a post
+    async function deletePost(postId) {
+      if (!confirm('Delete this post?')) return;
+      try {
+        const res = await fetch(`${apiUrl}/umbrella/${postId}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to delete post');
+        fetchUmbrellaPosts(); // Refresh posts
+      } catch (err) {
+        alert(`Failed to delete post: ${err.message}`);
+      }
+    }
+
+    // Initial load
+    fetchWeather('Central');
     fetchUmbrellaPosts();
 
-    // Update weather on region change
-    document.getElementById('locationSelect').addEventListener('change', function(e) {
+    // Handle region selection
+    document.getElementById('locationSelect').addEventListener('change', (e) => {
       fetchWeather(e.target.value);
     });
 
-    // Umbrella post submission (placeholder until backend is set up)
-    document.getElementById('umbrellaForm').addEventListener('submit', async function(e) {
+    // Handle form submission
+    document.getElementById('umbrellaForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      document.getElementById('postStatus').innerText = 'Umbrella posting requires backend setup.';
+      const name = document.getElementById('name').value;
+      const location = document.getElementById('location').value;
+      const message = document.getElementById('message').value;
+      const status = document.getElementById('postStatus');
+
+      status.innerText = '📤 Submitting post...';
+      try {
+        const res = await fetch(`${apiUrl}/umbrella`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, location, message })
+        });
+        if (!res.ok) throw new Error('Failed to post offer');
+        const data = await res.json();
+        status.innerText = `✅ ${data.message || 'Post submitted!'}`;
+        document.getElementById('umbrellaForm').reset();
+        fetchUmbrellaPosts(); // Refresh posts
+      } catch (err) {
+        status.innerText = `❌ Failed to post: ${err.message}`;
+        status.classList.add('error');
+      }
     });
   </script>
 </body>
