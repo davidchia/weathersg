@@ -136,40 +136,48 @@
     }
 
     // Update a post
-    async function updatePost(postId) {
-      const name = prompt('Enter name:', '');
-      const location = prompt('Enter location:', '');
-      const message = prompt('Enter message:', '');
-      if (!name || !location) {
-        alert('Name and location are required.');
-        return;
-      }
-      try {
-        const res = await fetch(`${apiUrl}/umbrella/${postId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, location, message })
-        });
-        if (!res.ok) throw new Error('Failed to update post');
-        fetchUmbrellaPosts();
-      } catch (err) {
-        alert(`Failed to update post: ${err.message}`);
-      }
+async function updatePost(postId) {
+  const name = prompt('Enter name:', '');
+  const location = prompt('Enter location:', '');
+  const message = prompt('Enter message:', '');
+  if (!name || !location) {
+    alert('Name and location are required.');
+    return;
+  }
+  try {
+    const res = await fetch(`${apiUrl}/umbrella/${postId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, location, message })
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(`HTTP ${res.status}: ${JSON.stringify(errorData)}`);
     }
+    fetchUmbrellaPosts();
+  } catch (err) {
+    console.error('Update error:', err.message, { url: `${apiUrl}/umbrella/${postId}`, postId });
+    alert(`Failed to update post: ${err.message}`);
+  }
+}
 
     // Delete a post
-    async function deletePost(postId) {
-      if (!confirm('Delete this post?')) return;
-      try {
-        const res = await fetch(`${apiUrl}/umbrella/${postId}`, {
-          method: 'DELETE'
-        });
-        if (!res.ok) throw new Error('Failed to delete post');
-        fetchUmbrellaPosts();
-      } catch (err) {
-        alert(`Failed to delete post: ${err.message}`);
-      }
+  async function deletePost(postId) {
+  if (!confirm('Delete this post?')) return;
+  try {
+    const res = await fetch(`${apiUrl}/umbrella/${postId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(`HTTP ${res.status}: ${JSON.stringify(errorData)}`);
     }
+    fetchUmbrellaPosts();
+  } catch (err) {
+    console.error('Delete error:', err.message, { url: `${apiUrl}/umbrella/${postId}`, postId });
+    alert(`Failed to delete post: ${err.message}`);
+  }
+}
 
     // Initial load
     fetchWeather('Central');
