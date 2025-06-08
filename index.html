@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherShield SG</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    select, input, textarea {
+      padding: 10px;
+      width: 90%;
+      margin-top: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>☁️ WeatherShield SG</h1>
+    <p>Select a region:</p>
+    <select id="locationSelect">
+      <option value="East">East (Bedok)</option>
+      <option value="West">West (Jurong West)</option>
+      <option value="Central">Central (City)</option>
+      <option value="North">North (Ang Mo Kio)</option>
+    </select>
+    <p id="weather">Loading real-time weather forecast...</p>
+  </div>
+
+  <div class="card">
+    <h2>☂️ Share Your Umbrella</h2>
+    <form id="umbrellaForm">
+      <input type="text" id="name" placeholder="Your Name" required><br>
+      <input type="text" id="location" placeholder="Location (e.g., Bugis MRT)" required><br>
+      <textarea id="message" placeholder="Any message?" rows="3"></textarea><br>
+      <button type="submit">Post Offer</button>
+    </form>
+    <p id="postStatus"></p>
+    <h3>Available Umbrellas</h3>
+    <div id="umbrellaPosts">Loading posts...</div>
+  </div>
+
+  <script>
+    // Map regions to NEA API areas
+    const regionToArea = {
+      'East': 'Bedok',
+      'West': 'Jurong West',
+      'Central': 'City',
+      'North': 'Ang Mo Kio'
+    };
+
+    // Fetch weather directly from NEA API
+    async function fetchWeather(region) {
+      try {
+        const area = regionToArea[region]; // Map region to area
+        const res = await fetch('https://api.data.gov.sg/v1/environment/2-hour-weather-forecast');
+        if (!res.ok) throw new Error('Network response was not ok');
+        const data = await res.json();
+        const forecasts = data?.items?.[0]?.forecasts || [];
+        const forecast = forecasts.find(f => f.area.toLowerCase() === area.toLowerCase());
+        document.getElementById('weather').innerText = forecast 
+          ? `Forecast for ${region}: ${forecast.forecast}` 
+          : `No data for ${region}`;
+      } catch (err) {
+        document.getElementById('weather').innerText = 'Failed to load weather data: ' + err.message;
+      }
+    }
+
+    // Fetch umbrella posts (placeholder until backend is set up)
+    async function fetchUmbrellaPosts() {
+      document.getElementById('umbrellaPosts').innerText = 'Umbrella posts require backend setup.';
+    }
+
+    // Initial fetch
+    fetchWeather('Central'); // Default to Central
+    fetchUmbrellaPosts();
+
+    // Update weather on region change
+    document.getElementById('locationSelect').addEventListener('change', function(e) {
+      fetchWeather(e.target.value);
+    });
+
+    // Umbrella post submission (placeholder until backend is set up)
+    document.getElementById('umbrellaForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      document.getElementById('postStatus').innerText = 'Umbrella posting requires backend setup.';
+    });
+  </script>
+</body>
+</html>
