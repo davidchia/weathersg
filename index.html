@@ -5,57 +5,89 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WeatherShield SG</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #umbrellaForm, #weather, #umbrellaPosts { margin-bottom: 20px; }
-    .post { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
-    button { margin-left: 10px; }
-    #postStatus { color: green; }
-    .error { color: red; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    select, input, textarea {
+      padding: 10px;
+      width: 90%;
+      margin-top: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .post {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .post button {
+      margin-left: 10px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    #postStatus.error {
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <h1>WeatherShield SG</h1>
-  
-  <!-- Weather Section -->
-  <div>
-    <label for="locationSelect">Select Region:</label>
+  <div class="card">
+    <h1>☁️ WeatherShield SG</h1>
+    <p>Select a region:</p>
     <select id="locationSelect">
-      <option value="Central">Central</option>
-      <option value="East">East</option>
-      <option value="North">North</option>
-      <option value="West">West</option>
+      <option value="East">East (Bedok)</option>
+      <option value="West">West (Jurong West)</option>
+      <option value="Central">Central (City)</option>
+      <option value="North">North (Ang Mo Kio)</option>
     </select>
-    <div id="weather">Loading weather...</div>
+    <p id="weather">Loading real-time weather forecast...</p>
   </div>
 
-  <!-- Post Form -->
-  <form id="umbrellaForm">
-    <h2>Share an Umbrella</h2>
-    <div>
-      <label for="name">Name:</label>
-      <input type="text" id="name" required>
-    </div>
-    <div>
-      <label for="location">Location:</label>
-      <input type="text" id="location" required>
-    </div>
-    <div>
-      <label for="message">Message:</label>
-      <textarea id="message"></textarea>
-    </div>
-    <button type="submit">Post Offer</button>
-    <div id="postStatus"></div>
-  </form>
-
-  <!-- Posts Display -->
-  <div id="umbrellaPosts">Loading posts...</div>
+  <div class="card">
+    <h2>☂️ Share Your Umbrella</h2>
+    <form id="umbrellaForm">
+      <input type="text" id="name" placeholder="Your Name" required><br>
+      <input type="text" id="location" placeholder="Location (e.g., Bugis MRT)" required><br>
+      <textarea id="message" placeholder="Any message?" rows="3"></textarea><br>
+      <button type="submit">Post Offer</button>
+    </form>
+    <p id="postStatus"></p>
+    <h3>Available Umbrellas</h3>
+    <div id="umbrellaPosts">Loading posts...</div>
+  </div>
 
   <script>
     // *** PLACEHOLDER: Replace with your API Gateway Invoke URL ***
     // e.g., 'https://0hmf282ge0.execute-api.us-east-2.amazonaws.com/prod'
     const apiUrl = 'YOUR_API_GATEWAY_URL_HERE';
 
-    // NEA API region to area mapping
+    // Map regions to NEA API areas
     const regionToArea = {
       'East': 'Bedok',
       'West': 'Jurong West',
@@ -63,7 +95,7 @@
       'North': 'Ang Mo Kio'
     };
 
-    // Fetch NEA weather data
+    // Fetch weather directly from NEA API
     async function fetchWeather(region) {
       try {
         const area = regionToArea[region];
@@ -76,12 +108,12 @@
           ? `Forecast for ${region}: ${forecast.forecast}` 
           : `No data for ${region}`;
       } catch (err) {
-        document.getElementById('weather').innerText = `Failed to load weather: ${err.message}`;
+        document.getElementById('weather').innerText = 'Failed to load weather data: ' + err.message;
         document.getElementById('weather').classList.add('error');
       }
     }
 
-    // Fetch and display posts
+    // Fetch and display umbrella posts
     async function fetchUmbrellaPosts() {
       try {
         const res = await fetch(`${apiUrl}/umbrella`);
@@ -118,7 +150,7 @@
           body: JSON.stringify({ name, location, message })
         });
         if (!res.ok) throw new Error('Failed to update post');
-        fetchUmbrellaPosts(); // Refresh posts
+        fetchUmbrellaPosts();
       } catch (err) {
         alert(`Failed to update post: ${err.message}`);
       }
@@ -132,7 +164,7 @@
           method: 'DELETE'
         });
         if (!res.ok) throw new Error('Failed to delete post');
-        fetchUmbrellaPosts(); // Refresh posts
+        fetchUmbrellaPosts();
       } catch (err) {
         alert(`Failed to delete post: ${err.message}`);
       }
@@ -142,13 +174,13 @@
     fetchWeather('Central');
     fetchUmbrellaPosts();
 
-    // Handle region selection
-    document.getElementById('locationSelect').addEventListener('change', (e) => {
+    // Update weather on region change
+    document.getElementById('locationSelect').addEventListener('change', function(e) {
       fetchWeather(e.target.value);
     });
 
-    // Handle form submission
-    document.getElementById('umbrellaForm').addEventListener('submit', async (e) => {
+    // Umbrella post submission
+    document.getElementById('umbrellaForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('name').value;
       const location = document.getElementById('location').value;
@@ -166,7 +198,7 @@
         const data = await res.json();
         status.innerText = `✅ ${data.message || 'Post submitted!'}`;
         document.getElementById('umbrellaForm').reset();
-        fetchUmbrellaPosts(); // Refresh posts
+        fetchUmbrellaPosts();
       } catch (err) {
         status.innerText = `❌ Failed to post: ${err.message}`;
         status.classList.add('error');
