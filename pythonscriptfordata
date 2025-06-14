@@ -1,6 +1,14 @@
 from pyspark.sql import SparkSession
+
 spark = SparkSession.builder.appName("AggregatePosts").getOrCreate()
-posts_df = spark.read.csv("s3://weathershield-emr-777/input/posts.csv", header=True)
+
+# Read CSV with explicit header option
+posts_df = spark.read.option("header", "true").csv("s3://weathershield-emr-777/input/posts.csv")
+
+# Group by location and count
 agg_df = posts_df.groupBy("location").count()
-agg_df.write.mode("overwrite").json("s3://weathershield-emr-777/output/agg_posts")
+
+# Write output with overwrite mode and partition overwrite
+agg_df.write.mode("overwrite").option("overwritePartitions", "true").json("s3://weathershield-emr-777/output/agg_posts")
+
 spark.stop()
